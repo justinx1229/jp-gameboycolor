@@ -1,0 +1,223 @@
+Due date:
+    3/06/2024 @ 11:59pm test case
+    3/08/2024 @ 11:59pm code
+
+Objective:
+~~~~~~~~~~
+
+- Learn how to implement (and work with) new control abstractions
+
+Important:
+~~~~~~~~~~
+
+The spec will follow but the given tests are also part of the spec.
+
+Description:
+~~~~~~~~~~~~
+
+We will implement a form of communicating sequential processes (CSP). We will
+not call them processes in order to avoid confusion with Unix processes so
+we'll borrow the golang terminology and call them c-routines. Go calls them
+go-routines, a clever play on the term coroutines, functions that alternate
+their execution as opposed to having a strict caller-callee relationship.
+
+The key to figuring out how to make those things work is to think of the
+execution stack as a data structure and allow your code to manipulate
+stacks, create new ones, insert them in queues, switch between then, etc.
+
+Stack size for c-routines created by calling the 'go' functions should
+be limited to 8KB.
+
+Starting a c-routine:
+~~~~~~~~~~~~~~~~~~~~~
+
+You start a c-routine using the go() function. For example:
+
+    Value f1(void) {
+        printf("I'm a c-routine\n");
+        return asInt(0);
+    }
+
+    int main() {
+        go(f1);
+        ...
+    }
+
+After calling go(), we will have 2 concurrent paths through the code, one
+that runs the body of the f1 function and another that continues the
+execution of main.
+
+Calling "go(f1)" creates a new c-routine that runs the body of "f1"
+
+Our c-routines will be concurrent but not parallel. This means that they never
+run simultaneously (otherwise we'd call them threads). Instead, one of them
+will run until it terminates or becomes blocked, giving other c-routines a
+chance to run.
+
+Terminating a c-routine:
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+A c-routines terminates when its function returns
+
+Terminating the program:
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+Your program terminates if one of 2 things happen:
+
+- main returns
+- all c-routines terminate or become blocked
+
+Channels:
+~~~~~~~~~
+
+Channels are communication mechanisms between c-routines. Our channels are
+non-buffered and synchronous.
+
+Synchronous => a sender/receiver will block until its operation succeeds
+
+Non-buffered => the channel doesn't store any values. A sender and receiver
+                need to be matched before they both proceed
+
+What can you do with a channel?
+
+   Channel* channel(void);       // create a new channel
+   send(Channel* ch, Value v);   // send a message on the channel
+   Value receive(Channel* ch);   // receive a message from the channel
+
+Associated channels
+~~~~~~~~~~~~~~~~~~
+
+Each c-routine comes with an associated channel.
+
+The go() function creates a c-routines and returns its associated channel:
+
+    Channel* go(Func f);
+
+A c-routine can discover its channel using the "me()" function:
+
+    Channel* me();    // returns the channel associated with the
+                      // calling c-routine
+
+When a c-routine terminates (its function returns), it will appear that
+its associated channel has an infinite supply of the returned value
+
+Complete API
+~~~~~~~~~~~~
+
+Look in go.h for details
+
+typedef Value (*Func)(void);
+
+typedef union Value {
+    char asChar;
+    short asShort;
+    int asInt;
+    long asLong;
+    long long asLongLong;
+    uint64_t asU64;
+    uint32_t asU32;
+    uint16_t asU16;
+    uint8_t asU8;
+    int64_t asI64;
+    int32_t asI32;
+    int16_t asI16;
+    int8_t asI8;
+    Func asFunc;
+    void* asPointer;
+    Channel* asChannel;
+    char* asString;
+} Value;
+
+extern Channel* go(Func func);           // create a c-routine running func
+                                         // returns its associated channel
+
+extern Channel* me(void);                // returns the associated channel
+                                         // of the caller
+
+extern Channel* channel(void);           // create a new channel
+
+extern void send(Channel* ch, Value v);  // Send the given value on the channel
+                                         // blocks until it is matched with
+                                         // a receiver
+
+extern Value receive(Channel* ch);       // Receive the next value in the
+                                         // channel. Blocks until it is matched
+                                         // with a sender
+                                     
+extern void again(void);                 // restart the current c-routine
+                                         // takes it back to its starting
+                                         // point
+
+How do you start?
+~~~~~~~~~~~~~~~~~
+
+This assignment might look overwhelming but it's easier than you think.
+
+- Read the "magic" code in "magic.s" and make sure you understand it. The
+  best way is to trace through its execution on paper (or a whiteboard)
+
+- Look at the Routine struct and think about the other information you'd need
+  to store in it
+
+- Look at the Queue struct and its associated functions (would be nice if C
+  had methods?). Think about how you'd use that to represent things like
+  c-routines that are ready to run, those that we waiting to send messages,
+  those that waiting to receive messages, etc.
+
+- Look at the test cases t0.in, t1.in, ..., and try to visualize their
+  execution
+
+What you need to do:
+~~~~~~~~~~~~~~~~~~~~
+
+(1) Answer the question in REPORT.txt
+
+(2) Add a test case (<csid>.test and <csid>.ok, less then 2000 characters each)
+
+     - <csid>.in contains a main program written in C
+     - <csid>.ok contains the expected output
+
+Please keep in mind that your test case can't rely in the specific order
+of interleaving between c-routines, only on the causal relationships
+established by channel communications:
+
+     - a message can not be received before it is sent
+
+The safest thing to do is to limit printing to a single c-routine
+
+To compile:
+~~~~~~~~~~~
+
+    make
+
+To run tests:
+~~~~~~~~~~~~~
+
+    make clean test
+
+To build one test case (e.g. t1)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    make t1.exec
+
+    you can then run it
+
+    ./t1.exec
+
+To see the results of one test (e.g. t1):
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    make clean t1.test
+
+To make the output less noisy:
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    make -s clean test
+
+To debug a test
+~~~~~~~~~~~~~~~
+
+    make t0.exec
+    gdb ./t0.exec
+
+    It is a good idea to replace all -O3 in the Makefile with -O0
