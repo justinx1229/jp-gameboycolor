@@ -4,5 +4,5 @@ Answer the questions in REPORT.txt. All team members should submit. Identical
 copies are ok.
 
 COMPILE: 
-gcc main.c $(sdl2-config --cflags --libs)
+g++  main.cpp consts.hpp  $(sdl2-config --cflags --libs) 
 
