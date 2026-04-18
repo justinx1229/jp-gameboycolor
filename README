@@ -2,3 +2,7 @@ Final project (milestone 1)
 
 Answer the questions in REPORT.txt. All team members should submit. Identical
 copies are ok.
+
+COMPILE: 
+gcc main.c $(sdl2-config --cflags --libs)
+
