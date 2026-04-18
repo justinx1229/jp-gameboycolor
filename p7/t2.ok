@@ -1,5 +1,0 @@
-[parent] this should be the first line
-[child] starting
-[child] x = 100
-[parent] 101
-[parent] this should be the last line
