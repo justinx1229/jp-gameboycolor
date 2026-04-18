@@ -4,7 +4,7 @@ Answer the questions in REPORT.txt. All team members should submit. Identical
 copies are ok.
 
 COMPILE: 
-g++  main.cpp consts.hpp memory.cpp memory.hpp  $(sdl2-config --cflags --libs) 
+g++ *.cpp $(sdl2-config --cflags --libs)
 
 RUN:
 ./a.out

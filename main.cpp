@@ -1,7 +1,30 @@
-#include "consts.hpp"
+#include "consts.h"
+#include "memory.h"
+
+// taken from: 
+// https://www.reddit.com/r/cpp_questions/comments/zl9p9p/is_there_a_better_way_to_read_a_file_into_a/ 
+std::vector<uint8_t> read_file(std::string filename) {
+    if (std::ifstream source_file {
+            filename, 
+            std::ios::binary
+        }; source_file) {
+
+        return std::vector<uint8_t>(std::istreambuf_iterator<char>{source_file}, {});
+    }
+
+    std::cerr << "Unable to open file " << filename << "\n";
+
+    return {};
+}
 
 int main() {
     std::cout << "Hello World!\n";
+
+    // rom
+    std::vector<uint8_t> bytes = read_file("drmario.gb");
+    for (uint32_t i = 0; i < bytes.size(); i++) {
+        write_byte(i, bytes[i]);
+    }
 
     // Code used from: https://wiki.libsdl.org/SDL3/SDL_CreateWindow 
 
@@ -33,6 +56,7 @@ int main() {
     
     SDL_Event event;
 
+    // run window. 
     while (!done) {
         while (SDL_PollEvent(&event)) {
             if (event.type == SDL_QUIT) {
