@@ -16,5 +16,3 @@ Justin Xu, Patrick Deng
 https://mattbruv.github.io/gameboy-crust/
  https://cturt.github.io/cinoop.html 
  https://www.usenix.org/conference/atc16/technical-sessions/presentation/wang#:~:text=Dynamic%20binary%20translation%20(DBT)%20translates,an%20existing%20retargetable%20DBT%20system. 
-
-hi this is Justin
