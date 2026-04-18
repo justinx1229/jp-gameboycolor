@@ -31,7 +31,16 @@ int main() {
         return 1;
     }
     
-    SDL_Delay(5000);
+    SDL_Event event;
+
+    while (!done) {
+        while (SDL_PollEvent(&event)) {
+            if (event.type == SDL_QUIT) {
+                done = true;
+            }
+        }
+    }
+
     SDL_DestroyWindow(window);
     SDL_Quit();
 
