@@ -7,4 +7,4 @@ COMPILE:
 g++ *.cpp $(sdl2-config --cflags --libs)
 
 RUN:
-./a.out
+./a.out <rom.gb>

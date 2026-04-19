@@ -17,11 +17,20 @@ std::vector<uint8_t> read_file(std::string filename) {
     return {};
 }
 
-int main() {
-    std::cout << "Hello World!\n";
+int main(int argc, char* argv[]) {
+    if (argc < 2) {
+        std::cerr << "Usage: " << argv[0] << " <rom.gb>\n";
+        return 1;
+    }
+
+    std::string rom_path = argv[1];
 
     // rom
-    std::vector<uint8_t> bytes = read_file("drmario.gb");
+    std::vector<uint8_t> bytes = read_file(rom_path);
+    if (bytes.empty()) {
+        return 1;
+    }
+
     for (uint32_t i = 0; i < bytes.size(); i++) {
         write_byte(i, bytes[i]);
     }
