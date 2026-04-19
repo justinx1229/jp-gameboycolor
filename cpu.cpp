@@ -294,6 +294,26 @@ void run00(uint8_t byte) {
             set_r8((byte >> 3) & LO_3, next8());
         case 14:
             set_r8((byte >> 3) & LO_3, next8());
+        case 7:
+            uint8_t hi_4 = byte >> 4;
+            switch (hi_4) {
+                case 0:
+                    flags[3] = a & 128;
+                    flags[0] = 0; flags[1] = 0; flags[2] = 0;
+                    a =
+                    break;
+                case 1:
+                    break;
+                case 2:
+                    break;
+                case 3: 
+                    break;
+                default:
+                    std::cerr << "Invalid instruction " << std::bitset<8>(byte).to_string() << " at pc " << pc << "\n";
+                    exit(1);
+                    break;
+            }
+        case 15:
     }
 }
 
