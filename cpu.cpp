@@ -499,11 +499,7 @@ void run01(uint8_t byte) {
     set_r8(dest, get_r8(src));
 }
 
-void run10(uint8_t byte) {
-    uint8_t op = (byte >> 3) & LO_3;
-    uint8_t src = byte & LO_3;
-    uint8_t val = get_r8(src);
-
+void alu(uint8_t op, uint8_t val) {
     switch (op) {
         case 0: {
             uint16_t res = (uint16_t)a + val;
@@ -535,13 +531,13 @@ void run10(uint8_t byte) {
         }
         case 3: {
             uint8_t carry = flags[0];
-            uint16_t subtrahend = (uint16_t)val + carry;
+            uint16_t sub = (uint16_t)val + carry;
             uint8_t old_a = a;
-            a = old_a - subtrahend;
+            a = old_a - sub;
             flags[3] = !a;
             flags[2] = 1;
             flags[1] = (old_a & LO_4) < ((val & LO_4) + carry);
-            flags[0] = old_a < subtrahend;
+            flags[0] = old_a < sub;
             break;
         }
         case 4:
@@ -573,6 +569,303 @@ void run10(uint8_t byte) {
             flags[0] = old_a < val;
             break;
         }
+    }
+}
+
+void run10(uint8_t byte) {
+    uint8_t op = (byte >> 3) & LO_3;
+    uint8_t src = byte & LO_3;
+    uint8_t val = get_r8(src);
+
+    alu(op, val);
+}
+
+
+void run11(uint8_t byte) {
+    switch (byte) {
+        // ALU ops
+        case 0b11000110:
+        case 0b11001110:
+        case 0b11010110:
+        case 0b11011110:
+        case 0b11100110:
+        case 0b11101110:
+        case 0b11110110:
+        case 0b11111110: {
+            uint8_t val = next8();
+            uint8_t op = (byte >> 3) & LO_3;
+            alu(op, val);
+            break;
+        }
+        // conditional return
+        case 0b11000000:
+        case 0b11001000:
+        case 0b11010000:
+        case 0b11011000: {
+            uint8_t cond = (byte >> 3) & LO_2;
+            bool take = false;
+
+            switch (cond) {
+                case 0:
+                    take = !flags[3];
+                    break;
+                case 1:
+                    take = flags[3];
+                    break;
+                case 2:
+                    take = !flags[0];
+                    break;
+                case 3:
+                    take = flags[0];
+                    break;
+            }
+
+            if (take) {
+                pc = read_byte(sp) | (((uint16_t)read_byte(sp + 1)) << 8);
+                sp += 2;
+            }
+            break;
+        }
+        // return stuff
+        case 0b11001001:
+        case 0b11011001:
+            pc = read_byte(sp) | (((uint16_t)read_byte(sp + 1)) << 8);
+            sp += 2;
+            break;
+        // cond jump
+        case 0b11000010:
+        case 0b11001010:
+        case 0b11010010:
+        case 0b11011010: {
+            uint16_t addr = next16();
+            uint8_t cond = (byte >> 3) & LO_2;
+            bool take = false;
+
+            switch (cond) {
+                case 0:
+                    take = !flags[3];
+                    break;
+                case 1:
+                    take = flags[3];
+                    break;
+                case 2:
+                    take = !flags[0];
+                    break;
+                case 3:
+                    take = flags[0];
+                    break;
+            }
+
+            if (take) {
+                pc = addr;
+            }
+            break;
+        }
+        // jump imm16
+        case 0b11000011:
+            pc = next16();
+            break;
+        // jump hl
+        case 0b11101001:
+            pc = hl;
+            break;
+        // conditional call
+        case 0b11000100:
+        case 0b11001100:
+        case 0b11010100:
+        case 0b11011100: {
+            uint16_t addr = next16();
+            uint8_t cond = (byte >> 3) & LO_2;
+            bool take = false;
+
+            switch (cond) {
+                case 0:
+                    take = !flags[3];
+                    break;
+                case 1:
+                    take = flags[3];
+                    break;
+                case 2:
+                    take = !flags[0];
+                    break;
+                case 3:
+                    take = flags[0];
+                    break;
+            }
+
+            if (take) {
+                sp--;
+                write_byte(sp, pc >> 8);
+                sp--;
+                write_byte(sp, pc & LO_8);
+                pc = addr;
+            }
+            break;
+        }
+        // call imm16
+        case 0b11001101: {
+            uint16_t addr = next16();
+            sp--;
+            write_byte(sp, pc >> 8);
+            sp--;
+            write_byte(sp, pc & LO_8);
+            pc = addr;
+            break;
+        }
+        // restart
+        case 0b11000111:
+        case 0b11001111:
+        case 0b11010111:
+        case 0b11011111:
+        case 0b11100111:
+        case 0b11101111:
+        case 0b11110111:
+        case 0b11111111: {
+            sp--;
+            write_byte(sp, pc >> 8);
+            sp--;
+            write_byte(sp, pc & LO_8);
+            pc = byte & 0b00111000;
+            break;
+        }
+        // pop r16stk
+        case 0b11000001:
+        case 0b11010001:
+        case 0b11100001:
+        case 0b11110001: {
+            uint16_t val = read_byte(sp) | (((uint16_t)read_byte(sp + 1)) << 8);
+            sp += 2;
+
+            switch ((byte >> 4) & LO_2) {
+                case 0:
+                    bc = val;
+                    break;
+                case 1:
+                    de = val;
+                    break;
+                case 2:
+                    hl = val;
+                    break;
+                case 3:
+                    a = val >> 8;
+                    flags[3] = (val >> 7) & 1;
+                    flags[2] = (val >> 6) & 1;
+                    flags[1] = (val >> 5) & 1;
+                    flags[0] = (val >> 4) & 1;
+                    break;
+            }
+            break;
+        }
+        // push r16stk
+        case 0b11000101:
+        case 0b11010101:
+        case 0b11100101:
+        case 0b11110101: {
+            uint16_t val = 0;
+
+            switch ((byte >> 4) & LO_2) {
+                case 0:
+                    val = bc;
+                    break;
+                case 1:
+                    val = de;
+                    break;
+                case 2:
+                    val = hl;
+                    break;
+                case 3:
+                    val = ((uint16_t)a << 8) |
+                        ((uint16_t)flags[3] << 7) |
+                        ((uint16_t)flags[2] << 6) |
+                        ((uint16_t)flags[1] << 5) |
+                        ((uint16_t)flags[0] << 4);
+                    break;
+            }
+
+            sp--;
+            write_byte(sp, val >> 8);
+            sp--;
+            write_byte(sp, val & LO_8);
+            break;
+        }
+        // ldh [imm8], a
+        case 0b11100000:
+            write_byte(0xFF00 + next8(), a);
+            break;
+        // ldh [c], a
+        case 0b11100010:
+            write_byte(0xFF00 + (bc & LO_8), a);
+            break;
+        // ld [imm16], a
+        case 0b11101010:
+            write_byte(next16(), a);
+            break;
+        // ldh a, [imm8]
+        case 0b11110000:
+            a = read_byte(0xFF00 + next8());
+            break;
+        // ldh a, [c]
+        case 0b11110010:
+            a = read_byte(0xFF00 + (bc & LO_8));
+            break;
+        // ld a, [imm16]
+        case 0b11111010:
+            a = read_byte(next16());
+            break;
+        // add sp, imm8
+        case 0b11101000: {
+            int8_t offset = (int8_t)next8();
+            uint16_t old_sp = sp;
+            uint16_t unsigned_offset = (uint8_t)offset;
+
+            sp += offset;
+            flags[3] = 0;
+            flags[2] = 0;
+            flags[1] = ((old_sp & LO_4) + (unsigned_offset & LO_4)) > LO_4;
+            flags[0] = ((old_sp & LO_8) + (unsigned_offset & LO_8)) > LO_8;
+            break;
+        }
+        // ld hl, sp + imm8
+        case 0b11111000: {
+            int8_t offset = (int8_t)next8();
+            uint16_t unsigned_offset = (uint8_t)offset;
+
+            hl = sp + offset;
+            flags[3] = 0;
+            flags[2] = 0;
+            flags[1] = ((sp & LO_4) + (unsigned_offset & LO_4)) > LO_4;
+            flags[0] = ((sp & LO_8) + (unsigned_offset & LO_8)) > LO_8;
+            break;
+        }
+        // ld sp, hl
+        case 0b11111001:
+            sp = hl;
+            break;
+        // di
+        case 0b11110011:
+            break;
+        // ei
+        case 0b11111011:
+            break;
+        // invalid opcodes
+        case 0b11010011:
+        case 0b11011011:
+        case 0b11011101:
+        case 0b11100011:
+        case 0b11100100:
+        case 0b11101011:
+        case 0b11101100:
+        case 0b11101101:
+        case 0b11110100:
+        case 0b11111100:
+        case 0b11111101:
+            std::cerr << "Invalid instruction " << std::bitset<8>(byte).to_string() << " at pc " << pc << "\n";
+            exit(1);
+            break;
+        default:
+            std::cerr << "Unimplemented block 3 instruction " << std::bitset<8>(byte).to_string() << " at pc " << pc << "\n";
+            exit(1);
+            break;
     }
 }
 
@@ -608,7 +901,7 @@ void run() {
                     run10(byte);
                     break;
                 case 3:
-                    // run11(byte);
+                    run11(byte);
                     break;
             }
             break;
