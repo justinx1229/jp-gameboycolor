@@ -1060,6 +1060,15 @@ void run() {
     uint8_t m_cycles = 1;
 
     if (!is_halt()) {
+        if (pc == 0x0100) {
+            if (a == 0x0011) {
+                cgb_mode = 1;
+            }
+            else {
+                cgb_mode = 0;
+            }
+        }
+
         uint8_t byte = next8();
         uint8_t cb_byte = 0;
 
