@@ -11,6 +11,14 @@ uint16_t bc = 0;
 uint16_t de = 0;
 uint16_t hl = 0;
 
+uint8_t next8() {
+    return read_byte(pc++);
+}
+
+uint16_t next16() {
+    return read_byte(pc++) | (((uint16_t)read_byte(pc++)) << 8);
+}
+
 uint8_t get_r8(uint8_t r) {
     switch (r) {
         case 0:
@@ -195,8 +203,7 @@ void run_cb() {
 void run00(uint8_t byte) {
     switch (byte & LO_4) {
         case 1: {
-            uint16_t imm16 = (((uint16_t)read_byte(++pc)) << 8) | read_byte(++pc);
-            set_r16((byte >> 4) & LO_2, imm16);
+            set_r16((byte >> 4) & LO_2, next16);
             break;
         }
         case 2:
@@ -206,8 +213,7 @@ void run00(uint8_t byte) {
             set_r8(7, read_byte(get_16mem((byte >> 4) & LO_2)));
             break;
         case 8: {
-            uint16_t imm16 = (((uint16_t)read_byte(++pc)) << 8) | read_byte(++pc);
-            set_r16(imm16, sp);
+            set_r16(next16, sp);
             break;
         }
         case 3:
@@ -231,12 +237,15 @@ void run00(uint8_t byte) {
         case 13: 
             add_r8((byte >> 3) & LO_3, -1);
             break;
+        case 6:
+            set_r8((byte >> 3) & LO_3, next8());
+        case 14:
+            set_r8((byte >> 3) & LO_3, next8());
     }
 }
 
 void run() {
-    uint8_t byte = read_byte(pc);   
-    pc++;
+    uint8_t byte = next8();
     switch (byte) {
         case 0:
             return;
