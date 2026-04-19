@@ -17,6 +17,8 @@ const uint32_t SIZE_HRAM = 127;
 const uint16_t RB0_MASK = (1 << 14) | (1 << 15);
 
 uint8_t read_byte(uint16_t address);
+extern uint8_t ly;
+extern uint8_t lyc;
 
 void write_byte(uint16_t address, uint8_t byte);
 

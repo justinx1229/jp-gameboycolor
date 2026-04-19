@@ -17,6 +17,8 @@ uint8_t OAM[SIZE_OAM];
 uint8_t regs[SIZE_REGS];
 uint8_t HRAM[SIZE_HRAM];
 uint8_t IE;
+uint8_t ly; 
+uint8_t lyc; 
 
 bool vram_bank = false;
 
@@ -66,12 +68,25 @@ uint8_t read_byte(uint16_t address) {
         return OAM[address - 0xFE00];
     }
     else if (address >= 0xFF00 && address < 0xFF80) {
-        if (address == 0xFF4F) {
-            return vram_bank;
+        // Blargg tests print to the serial port by writing a byte to SB and then writing 0x81 to SC.
+        // idk how this works lowkey but it does so here we are
+        switch (address) {
+            case 0xFF4F: {
+                return vram_bank;
+                break;
+            } 
+            case 0xFF44: {
+                return ly;
+                break;
+            }
+            case 0xFF45: {
+                return lyc;
+                break;
+            }
         }
-        else {
-            return regs[address - 0xFF00];
-        }
+        
+        return regs[address - 0xFF00];
+        
     }
     else if (address < 0xFFFF) {
         return HRAM[address - 0xFF80];
@@ -117,12 +132,26 @@ void write_byte(uint16_t address, uint8_t byte) {
 
         // Blargg tests print to the serial port by writing a byte to SB and then writing 0x81 to SC.
         // idk how this works lowkey but it does so here we are
-        if (address == 0xFF02 && byte == 0x81) {
-            std::cout << static_cast<char>(regs[0x01]) << std::flush;
-            regs[0x02] = 0;
-        }
-        else if (address == 0xFF4F) {
-            vram_bank = byte & 1;
+        switch (address) {
+            case 0xFF02: {
+                if (address == 0xFF02 && byte == 0x81) {
+                    std::cout << static_cast<char>(regs[0x01]) << std::flush;
+                    regs[0x02] = 0;
+                }
+                break;
+            }
+            case 0xFF4F: {
+                vram_bank = byte & 1;
+                break;
+            } 
+            case 0xFF44: {
+                ly = byte;
+                break;
+            }
+            case 0xFF45: {
+                lyc = byte;
+                break;
+            }
         }
     }
     else if (address < 0xFFFF) {
