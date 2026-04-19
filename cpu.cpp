@@ -12,6 +12,9 @@ uint16_t bc = 0;
 uint16_t de = 0;
 uint16_t hl = 0;
 
+bool stopped = false;
+uint8_t wake = 0;
+
 uint8_t next8() {
     return read_byte(pc++);
 }
@@ -56,90 +59,6 @@ uint8_t get_r8(uint8_t r) {
     }
 
     return 0;
-}
-
-void add_r8(uint8_t r, uint8_t val) {
-    switch (r) {
-        case 0: {
-            // b
-            uint8_t b = (bc >> 8);
-            uint8_t res = b + val;
-            bc = (bc & LO_8) | ((uint16_t)(res) << 8); 
-            flags[3] = !res;
-            flags[2] = 0;
-            flags[1] = (b & LO_4) + (val & LO_4) > LO_4;
-            break;
-        }
-        case 1: {
-            // c
-            uint8_t c = bc & LO_8;
-            uint8_t res = c + val;
-            bc = (bc & HI_8) | res;
-            flags[3] = !res;
-            flags[2] = 0;
-            flags[1] = (c & LO_4) + (val & LO_4) > LO_4;
-            break;
-        }
-        case 2: {
-            // d
-            uint8_t d = de >> 8;
-            uint8_t res = d + val;
-            de = (de & LO_8) | (((uint16_t)(res)) << 8);
-            flags[3] = !res; 
-            flags[2] = 0;
-            flags[1] = (d & LO_4) + (val & LO_4) > LO_4;
-            break;
-        }
-        case 3: {
-            // e
-            uint8_t e = de & LO_8;
-            uint8_t res = e + val;
-            de = (de & HI_8) | res;
-            flags[3] = !res;
-            flags[2] = 0;
-            flags[1] = (e & LO_4) + (val & LO_4) > LO_4;
-            break;
-        }
-        case 4: {
-            // h
-            uint8_t h = hl >> 8;
-            uint8_t res = h + val;
-            hl = (hl & LO_8) | (((uint16_t)(res)) << 8);
-            flags[3] = !res; 
-            flags[2] = 0;
-            flags[1] = (h & LO_4) + (val & LO_4) > LO_4;
-            break;
-        }
-        case 5: {
-            // l
-            uint8_t l = hl & LO_8;
-            uint8_t res = l + val;
-            hl = (hl & HI_8) | res;
-            flags[3] = !res;
-            flags[2] = 0;
-            flags[1] = (l & LO_4) + (val & LO_4) > LO_4;
-            break;
-        }
-        case 6: {
-            // [hl]
-            uint8_t hl_v = read_byte(hl);
-            uint8_t res = hl_v + val;
-            write_byte(hl, res);
-            flags[3] = !res;
-            flags[2] = 0;
-            flags[1] = (hl_v & LO_4) + (val & LO_4) > LO_4;
-            break;
-        }
-        case 7: {
-            // a
-            uint8_t ta = a;
-            a += val;
-            flags[3] = !a;
-            flags[2] = 0;
-            flags[1] = (ta & LO_4) + (val & LO_4) > LO_4;
-            break;
-        }
-    }
 }
 
 void set_r8(uint8_t r, uint16_t v) {
@@ -243,8 +162,117 @@ void add_r16(uint8_t r, uint8_t val) {
     }
 }
 
-void run_cb() {
-
+void run_cb(uint8_t byte) {
+    switch (byte >> 6) {
+        case 0: {
+            switch (byte >> 3) {
+                case 0: {
+                    uint8_t r = byte & LO_3;
+                    uint8_t v = get_r8(r);
+                    flags[0] = v >> 7;
+                    v = (v >> 7) | (v << 1);
+                    flags[3] = !v;
+                    flags[1] = 0; flags[2] = 0;
+                    set_r8(r, v);
+                    break;
+                }
+                case 1: {
+                    uint8_t r = byte & LO_3;
+                    uint8_t v = get_r8(r);
+                    flags[0] = v & 1;
+                    v = (v >> 1) | ((v & 1) << 7);
+                    flags[3] = !v;
+                    flags[1] = 0; flags[2] = 0;
+                    set_r8(r, v);
+                    break;
+                }
+                case 2: {
+                    uint8_t tc = flags[0];
+                    uint8_t r = byte & LO_3;
+                    uint8_t v = get_r8(r);
+                    flags[0] = v >> 7;
+                    v = (v << 7) | tc;
+                    flags[3] = !v;
+                    flags[1] = 0; flags[2] = 0;
+                    set_r8(r, v);
+                    break;
+                }
+                case 3: {
+                    uint8_t tc = flags[0];
+                    uint8_t r = byte & LO_3;
+                    uint8_t v = get_r8(r);
+                    flags[0] = v & 1;
+                    v = (v >> 1) | (tc << 7);
+                    flags[3] = !v;
+                    flags[1] = 0; flags[2] = 0;
+                    set_r8(r, v);
+                    break;
+                }
+                case 4: {
+                    uint8_t r = byte & LO_3;
+                    uint8_t v = get_r8(r);
+                    flags[0] = v >> 7;
+                    v <<= 1;
+                    flags[3] = !v;
+                    flags[1] = 0; flags[2] = 0;
+                    set_r8(r, v);
+                    break;
+                }
+                case 5: {
+                    uint8_t r = byte & LO_3;
+                    uint8_t v = get_r8(r);
+                    flags[0] = v & 1;
+                    v = (v >> 1) | (v & 127);
+                    flags[3] = !v;
+                    flags[1] = 0; flags[2] = 0;
+                    set_r8(r, v);
+                    break;
+                }
+                case 6: {
+                    uint8_t r = byte & LO_3;
+                    uint8_t v = get_r8(r);
+                    v = ((v & LO_4) << 4) | (v >> 4);
+                    flags[3] = !v;
+                    flags[0] = 0; flags[1] = 0; flags[2] = 0;
+                    set_r8(r, v);
+                    break;
+                }
+                case 7: {
+                    uint8_t r = byte & LO_3;
+                    uint8_t v = get_r8(r);
+                    flags[0] = v & 1;
+                    v >>= 1;
+                    flags[3] = !v;
+                    flags[0] = 0; flags[1] = 0;
+                    break;
+                }
+            }
+            break;
+        }
+        case 1: {
+            uint8_t bit = (byte >> 3) & LO_3;
+            uint8_t r = byte & LO_3;
+            flags[3] = !((get_r8(r) >> bit) & 1);
+            flags[2] = 0; flags[1] = 0;
+            break;
+        }
+        case 2: {
+            uint8_t bit = (byte >> 3) & LO_3;
+            uint8_t r = byte & LO_3;
+            uint8_t v = get_r8(r);
+            v &= LO_8 ^ (1 << bit);
+            set_r8(r, v);
+            break;
+        }
+        case 3: {
+            uint8_t bit = (byte >> 3) & LO_3;
+            uint8_t r = byte & LO_3;
+            uint8_t v = get_r8(r);
+            v |= (1 << bit);
+            set_r8(r, v);
+            break;
+        }
+    }
 }
 
 void run00(uint8_t byte) {
@@ -273,18 +301,42 @@ void run00(uint8_t byte) {
             flags[0] = ((uint32_t)thl + hl) > LO_16;
             break;
         }
-        case 4:
-            add_r8((byte >> 3) & LO_3, 1);
+        case 4: {
+            uint8_t r = (byte >> 3) & LO_3;
+            uint8_t v = get_r8(r);
+            flags[1] = (1 + (v & LO_4)) > LO_4;
+            flags[2] = 0;
+            flags[3] = !(++v);
+            set_r8(r, v);
             break;
-        case 12:
-            add_r8((byte >> 3) & LO_3, 1);
+        }
+        case 12: {
+            uint8_t r = (byte >> 3) & LO_3;
+            uint8_t v = get_r8(r);
+            flags[1] = (1 + (v & LO_4)) > LO_4;
+            flags[2] = 0;
+            flags[3] = !(++v);
+            set_r8(r, v);
             break;
-        case 5:
-            add_r8((byte >> 3) & LO_3, -1);
+        }
+        case 5: {
+            uint8_t r = (byte >> 3) & LO_3;
+            uint8_t v = get_r8(r);
+            flags[1] = (LO_4 + (v & LO_4)) > LO_4;
+            flags[2] = 0;
+            flags[3] = !(--v);
+            set_r8(r, v);
             break;
-        case 13: 
-            add_r8((byte >> 3) & LO_3, -1);
+        }
+        case 13: {
+            uint8_t r = (byte >> 3) & LO_3;
+            uint8_t v = get_r8(r);
+            flags[1] = (LO_4 + (v & LO_4)) > LO_4;
+            flags[2] = 0;
+            flags[3] = !(--v);
+            set_r8(r, v);
             break;
+        }
         case 6:
             set_r8((byte >> 3) & LO_3, next8());
             break;
@@ -295,14 +347,14 @@ void run00(uint8_t byte) {
             uint8_t hi_4 = byte >> 4;
             switch (hi_4) {
                 case 0: {
-                    flags[0] = a & 128;
+                    flags[0] = a >> 7;
                     flags[1] = 0; flags[2] = 0; flags[3] = 0;
                     a = ((a & LO_7) << 1) | (a >> 7);
                     break;
                 }
                 case 1: {
                     uint8_t tc = flags[0];
-                    flags[0] = a & 128;
+                    flags[0] = a >> 7;
                     flags[1] = 0; flags[2] = 0; flags[3] = 0;
                     a = ((a & LO_7) << 1) | tc;
                     break;
@@ -330,10 +382,11 @@ void run00(uint8_t byte) {
                     flags[0] = a > 153; 
                     break; 
                 } 
-                case 3: 
+                case 3: {
                     flags[0] = 1;
                     flags[1] = 0; flags[2] = 0;
                     break;
+                }
                 default:
                     std::cerr << "Invalid instruction " << std::bitset<8>(byte).to_string() << " at pc " << pc << "\n";
                     exit(1);
@@ -529,8 +582,14 @@ void run() {
         case 0:
             return;
             break;
+        case 16:
+            // stop, TODO
+            if (!wake) {
+                stopped = true;
+            }
+            break;
         case CB: 
-            run_cb();
+            run_cb(byte);
             break;
         default:
             // casework on first 2 bits
