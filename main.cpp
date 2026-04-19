@@ -2,6 +2,8 @@
 #include "cpu.h"
 #include "memory.h"
 
+uint8_t cgb_mode;
+
 // taken from: 
 // https://www.reddit.com/r/cpp_questions/comments/zl9p9p/is_there_a_better_way_to_read_a_file_into_a/ 
 std::vector<uint8_t> read_file(std::string filename) {
