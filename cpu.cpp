@@ -332,6 +332,8 @@ void run00(uint8_t byte) {
                     break; 
                 } 
                 case 3: 
+                    flags[0] = 1;
+                    flags[1] = 0; flags[2] = 0;
                     break;
                 default:
                     std::cerr << "Invalid instruction " << std::bitset<8>(byte).to_string() << " at pc " << pc << "\n";
