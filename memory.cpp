@@ -18,6 +18,8 @@ uint8_t regs[SIZE_REGS];
 uint8_t HRAM[SIZE_HRAM];
 uint8_t IE;
 
+bool vram_bank = false;
+
 void reset_memory() {
     memset(ROM_bank_00, 0, sizeof(ROM_bank_00));
     memset(ROM_bank_01_NN, 0, sizeof(ROM_bank_01_NN));
@@ -64,7 +66,12 @@ uint8_t read_byte(uint16_t address) {
         return OAM[address - 0xFE00];
     }
     else if (address >= 0xFF00 && address < 0xFF80) {
-        return regs[address - 0xFF00];
+        if (address == 0xFF4F) {
+            return vram_bank;
+        }
+        else {
+            return regs[address - 0xFF00];
+        }
     }
     else if (address < 0xFFFF) {
         return HRAM[address - 0xFF80];
@@ -113,6 +120,9 @@ void write_byte(uint16_t address, uint8_t byte) {
         if (address == 0xFF02 && byte == 0x81) {
             std::cout << static_cast<char>(regs[0x01]) << std::flush;
             regs[0x02] = 0;
+        }
+        else if (address == 0xFF4F) {
+            vram_bank = byte & 1;
         }
     }
     else if (address < 0xFFFF) {
