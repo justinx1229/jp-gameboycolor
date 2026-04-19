@@ -12,6 +12,9 @@ uint16_t bc = 0;
 uint16_t de = 0;
 uint16_t hl = 0;
 
+bool halt = false;
+bool set_ime = false;
+bool ime = false; 
 bool stopped = false;
 uint8_t wake = 0;
 
@@ -507,7 +510,13 @@ void run00(uint8_t byte) {
 
 void run01(uint8_t byte) {
     if (byte == 0x76) {
-        // TODO: halt
+        if (!ime) {
+            uint8_t ie_ = read_byte(0xFFFF);
+            uint8_t if_ = read_byte(0xFF0F);
+            if (!(ie_ & if_)) {
+                halt = true;
+            }
+        }
         return;
     }
 
@@ -646,9 +655,12 @@ void run11(uint8_t byte) {
         }
         // return stuff
         case 0b11001001:
+            pc = read_byte(sp | (((uint16_t)read_byte(sp + 1)) << 8));
+            sp += 2; 
         case 0b11011001:
             pc = read_byte(sp) | (((uint16_t)read_byte(sp + 1)) << 8);
             sp += 2;
+            set_ime = true;
             break;
         // cond jump
         case 0b11000010:
@@ -861,9 +873,11 @@ void run11(uint8_t byte) {
             break;
         // di
         case 0b11110011:
+            ime = false;
             break;
         // ei
         case 0b11111011:
+            ime = true;
             break;
         // invalid opcodes
         case 0b11010011:
@@ -887,41 +901,72 @@ void run11(uint8_t byte) {
     }
 }
 
+void handle_interrupt() {
+    uint8_t ie_ = read_byte(0xFFFF);
+    uint8_t if_ = read_byte(0xFF0F);
+    if (ie_ & if_) {
+        halt = false;
+    }
+    if (ime) {
+        if (ie_ & if_) {
+            for (int i = 0; i < 5; i++) {
+                if ((ie_ & if_ & (1 << i))) {
+                    write_byte(--sp, pc >> 8);
+                    write_byte(--sp, pc & LO_8);
+                    pc = I_JUMPS[i];
+                    write_byte(0xFF0F, read_byte(0xFF0F) & (~(1 << i)));
+                }
+            }
+        }
+    }
+}
+
 void run() {
     if (stopped) {
         return;
     }
     
-    uint8_t byte = next8();
-    switch (byte) {
-        case 0:
-            return;
-            break;
-        case 16:
-            // stop, TODO
-            if (!wake) {
-                stopped = true;
-            }
-            break;
-        case CB: 
-            run_cb(next8());
-            break;
-        default:
-            // casework on first 2 bits
-            switch (byte >> 6) {
-                case 0:
-                    run00(byte);
-                    break;
-                case 1:
-                    run01(byte); 
-                    break;
-                case 2: 
-                    run10(byte);
-                    break;
-                case 3:
-                    run11(byte);
-                    break;
-            }
-            break;
+    if (!halt) {
+        uint8_t byte = next8();
+        switch (byte) {
+            case 0:
+                return;
+                break;
+            case 16:
+                // stop, TODO
+                if (!wake) {
+                    stopped = true;
+                }
+                break;
+            case CB: 
+                run_cb(next8());
+                break;
+            default:
+                // casework on first 2 bits
+                switch (byte >> 6) {
+                    case 0:
+                        run00(byte);
+                        break;
+                    case 1:
+                        run01(byte); 
+                        break;
+                    case 2: 
+                        run10(byte);
+                        break;
+                    case 3:
+                        run11(byte);
+                        break;
+                }
+                break;
+        }
+    }
+
+    // handle_timer();
+
+    handle_interrupt(); 
+
+    if (set_ime) {
+        ime = true;
+        set_ime = false;
     }
 }

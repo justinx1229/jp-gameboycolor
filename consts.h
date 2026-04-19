@@ -25,3 +25,5 @@ const uint8_t LO_7 = 127;
 const uint8_t LO_4 = 15;
 const uint8_t LO_3 = 7;
 const uint8_t LO_2 = 3;
+
+const uint8_t I_JUMPS[5] = {0x40, 0x48, 0x50, 0x58, 0x60};
