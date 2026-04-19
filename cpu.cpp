@@ -270,9 +270,14 @@ void run00(uint8_t byte) {
         case 11:
             add_r16((byte >> 4) & LO_2, -1);
             break; 
-        case 9:
+        case 9: {
+            uint16_t thl = hl;
             hl += get_r16((byte >> 4) & LO_2);
+            flags[2] = 0;
+            flags[1] = (thl & LO_12) + (hl & LO_12) > LO_12;
+            flags[0] = ((uint32_t)thl + hl) > LO_16;
             break;
+        }
         case 4:
             add_r8((byte >> 3) & LO_3, 1);
             break;
