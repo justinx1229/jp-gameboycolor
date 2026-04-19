@@ -259,10 +259,6 @@ void run00(uint8_t byte) {
         case 10: 
             set_r8(7, read_byte(get_16mem((byte >> 4) & LO_2)));
             break;
-        case 8: {
-            set_r16(next16(), sp);
-            break;
-        }
         case 3:
             add_r16((byte >> 4) & LO_2, 1);
             break;
@@ -381,7 +377,10 @@ void run00(uint8_t byte) {
             break;
         }
         case 8: {
-            if (byte == 24) {
+            if (byte == 8) {
+                set_r16(next16(), sp);
+            }
+            else if (byte == 24) {
                 uint8_t imm8 = next8();
                 pc += imm8;
             }
