@@ -58,3 +58,4 @@ dkms.conf
 .nfs*
 .vscode/
 gb-test-roms/
+.DS_Store

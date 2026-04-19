@@ -105,8 +105,7 @@ void write_byte(uint16_t address, uint8_t byte) {
     else if (address >= 0xFF00 && address < 0xFF80) {
         regs[address - 0xFF00] = byte;
 
-        // Blargg tests print to the serial port by writing a byte to SB
-        // and then writing 0x81 to SC.
+        // Blargg tests print to the serial port by writing a byte to SB and then writing 0x81 to SC.
         // idk how this works lowkey but it does so here we are
         if (address == 0xFF02 && byte == 0x81) {
             std::cout << static_cast<char>(regs[0x01]) << std::flush;
