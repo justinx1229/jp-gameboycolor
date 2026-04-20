@@ -166,7 +166,7 @@ void set_r16(uint8_t r, uint16_t val) {
     }
 }
 
-void add_r16(uint8_t r, uint8_t val) {
+void add_r16(uint8_t r, int16_t val) {
     switch (r) {
         case 0:
             bc += val;
@@ -334,7 +334,7 @@ void run_cb(uint8_t byte) {
                 case 0: {
                     uint8_t r = byte & LO_3;
                     uint8_t v = get_r8(r);
-                    flags[0] = v >> 7;
+                    flags[0] = (v >> 7) & 1;
                     v = (v >> 7) | (v << 1);
                     flags[3] = !v;
                     flags[1] = 0; flags[2] = 0;
@@ -355,8 +355,8 @@ void run_cb(uint8_t byte) {
                     uint8_t tc = flags[0];
                     uint8_t r = byte & LO_3;
                     uint8_t v = get_r8(r);
-                    flags[0] = v >> 7;
-                    v = (v << 7) | tc;
+                    flags[0] = (v >> 7) & 1;
+                    v = (v << 1) | tc;
                     flags[3] = !v;
                     flags[1] = 0; flags[2] = 0;
                     set_r8(r, v);
@@ -376,7 +376,7 @@ void run_cb(uint8_t byte) {
                 case 4: {
                     uint8_t r = byte & LO_3;
                     uint8_t v = get_r8(r);
-                    flags[0] = v >> 7;
+                    flags[0] = (v >> 7) & 1;
                     v <<= 1;
                     flags[3] = !v;
                     flags[1] = 0; flags[2] = 0;
@@ -448,7 +448,7 @@ void run00(uint8_t byte) {
             break;
         }
         case 2:
-            write16(get_16mem((byte >> 4) & LO_2), get_r8(7));
+            write_byte(get_16mem((byte >> 4) & LO_2), get_r8(7));
             break;
         case 10: 
             set_r8(7, read_byte(get_16mem((byte >> 4) & LO_2)));
@@ -461,10 +461,11 @@ void run00(uint8_t byte) {
             break; 
         case 9: {
             uint16_t thl = hl;
-            hl += get_r16((byte >> 4) & LO_2);
+            uint16_t val = get_r16((byte >> 4) & LO_2);
+            hl += val;
             flags[2] = 0;
-            flags[1] = (thl & LO_12) + (hl & LO_12) > LO_12;
-            flags[0] = ((uint32_t)thl + hl) > LO_16;
+            flags[1] = ((thl & LO_12) + (val & LO_12)) > LO_12;
+            flags[0] = ((uint32_t)thl + val) > LO_16;
             break;
         }
         case 4: {
@@ -513,14 +514,14 @@ void run00(uint8_t byte) {
             uint8_t hi_4 = byte >> 4;
             switch (hi_4) {
                 case 0: {
-                    flags[0] = a >> 7;
+                    flags[0] = (a >> 7) & 1;
                     flags[1] = 0; flags[2] = 0; flags[3] = 0;
                     a = ((a & LO_7) << 1) | (a >> 7);
                     break;
                 }
                 case 1: {
                     uint8_t tc = flags[0];
-                    flags[0] = a >> 7;
+                    flags[0] = (a >> 7) & 1;
                     flags[1] = 0; flags[2] = 0; flags[3] = 0;
                     a = ((a & LO_7) << 1) | tc;
                     break;
