@@ -20,6 +20,7 @@ uint8_t read_byte(uint16_t address);
 extern uint8_t ly;
 extern uint8_t lyc;
 extern bool oam_done;
+extern bool run_done;
 
 void write_byte(uint16_t address, uint8_t byte);
 

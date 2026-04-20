@@ -73,6 +73,32 @@ void run_oam() {
     }
 
     oam_done = true;
+    run_done = false;
+}
+
+void draw_bg() {
+    uint8_t scx = read_byte(0xFF42);
+    uint8_t scy = read_byte(0xFF43);
+
+    for (uint8_t i = 0; i < WIDTH; i++) {
+        uint8_t x = i + scx;
+        uint8_t y = ly + scy;
+        x /= 8; y /= 8;
+        uint8_t tile_id = x * 32 + y;
+    }
+}
+
+void run_draw() {
+    if (run_done) {
+        return;
+    }
+
+
+    uint8_t lcdc = read_byte(0xFF40);
+
+    if (!cgb_mode || lcdc & 1) {
+        draw_bg();
+    }
 }
 
 

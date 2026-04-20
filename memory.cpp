@@ -22,6 +22,7 @@ uint8_t lyc;
 
 bool vram_bank = false;
 bool oam_done = false;
+bool run_done = false;
 
 void reset_memory() {
     memset(ROM_bank_00, 0, sizeof(ROM_bank_00));
