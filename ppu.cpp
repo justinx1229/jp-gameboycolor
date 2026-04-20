@@ -12,6 +12,8 @@ enum class Mode {
 Mode mode = Mode::OAM;
 
 std::vector<std::array<uint8_t, 4>> sprites; 
+uint8_t lcdc;
+uint32_t frame_buffer[WIDTH][HEIGHT];
 
 void f_lyc() {
     if (ly == lyc) {
@@ -76,15 +78,63 @@ void run_oam() {
     run_done = false;
 }
 
+std::array<uint8_t, 17> get_tile_data(uint8_t tv) {
+    uint16_t base;
+    if (lcdc & (1 << 3)) {
+        base = 0x9C00;
+    }
+    else {
+        base = 0x9800;
+    }
+
+    uint8_t tile_id = read_byte(base + tv);
+
+    uint16_t start_index;
+
+    if (lcdc & (1 << 4)) {
+        start_index = 0x8000 + (((uint16_t)tile_id) << 4);
+    }
+    else {
+        start_index = 0x9000 + (((uint16_t)((int8_t)tile_id)) << 4);
+    }
+
+    std::array<uint8_t, 17> data;
+    for (uint32_t i = 0; i < 16; i++) {
+        data[i] = read_vram(start_index + i, 0);
+    }
+
+    // get attribute
+    if (cgb_mode) {
+        data[16] = read_vram(base + tv, 1);
+    }
+
+    return data; 
+}
+
 void draw_bg() {
     uint8_t scx = read_byte(0xFF42);
     uint8_t scy = read_byte(0xFF43);
 
     for (uint8_t i = 0; i < WIDTH; i++) {
-        uint8_t x = i + scx;
-        uint8_t y = ly + scy;
+        uint8_t x = ly + scy;
+        uint8_t y = i + scx;
         x /= 8; y /= 8;
         uint8_t tile_id = x * 32 + y;
+
+        std::array<uint8_t, 17> tile_data = get_tile_data(tile_id);
+
+        if (cgb_mode) {
+            uint8_t attribute = tile_data[16];
+        }
+        else {
+            uint8_t row = x % 8;
+            uint8_t col = 7 - (y % 8);
+
+            uint8_t color = (((tile_data[2 * row] >> col) & 1) << 1) | ((tile_data[2 * row + 1] >> col) & 1);
+            frame_buffer[ly][i] = color;
+        }
+
+        
     }
 }
 
@@ -94,7 +144,7 @@ void run_draw() {
     }
 
 
-    uint8_t lcdc = read_byte(0xFF40);
+    lcdc = read_byte(0xFF40);
 
     if (!cgb_mode || lcdc & 1) {
         draw_bg();

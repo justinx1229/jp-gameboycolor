@@ -38,6 +38,10 @@ void reset_memory() {
     reset_timer();
 }
 
+uint8_t read_vram(uint16_t address, bool bank) {
+    return VRAM[address - 0x8000][bank];
+}
+
 uint8_t read_byte(uint16_t address) {
     if (address < 0x4000) {
         return ROM_bank_00[address];

@@ -27,3 +27,5 @@ void write_byte(uint16_t address, uint8_t byte);
 void write16(uint16_t address, uint16_t val);
 
 void reset_memory();
+
+uint8_t read_vram(uint16_t address, bool bank);
