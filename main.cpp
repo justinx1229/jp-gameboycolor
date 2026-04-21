@@ -47,11 +47,8 @@ void update_button(SDL_Keycode key, bool pressed) {
 // taken from: 
 // https://www.reddit.com/r/cpp_questions/comments/zl9p9p/is_there_a_better_way_to_read_a_file_into_a/ 
 std::vector<uint8_t> read_file(std::string filename) {
-    if (std::ifstream source_file {
-            filename, 
-            std::ios::binary
-        }; source_file) {
-
+    std::ifstream source_file{filename};
+    if (source_file) {
         return std::vector<uint8_t>(std::istreambuf_iterator<char>{source_file}, {});
     }
 
@@ -125,7 +122,6 @@ int main(int argc, char* argv[]) {
     std::cout << "made window\n";
     
     SDL_Event event;
-    std::cout << "hi\n";
     // run window. 
     while (!done) {
         // handle quit
