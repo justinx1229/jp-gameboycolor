@@ -1,19 +1,54 @@
 #include "consts.h"
 #include "cpu.h"
 #include "display.h"
+#include "joypad.h"
 #include "memory.h"
 #include "ppu.h"
 
 uint8_t cgb_mode;
 
+void update_button(SDL_Keycode key, bool pressed) {
+    bool request_interrupt = false;
+
+    switch (key) {
+        case SDLK_RIGHT:
+            request_interrupt = set_button(Button::RIGHT, pressed);
+            break;
+        case SDLK_LEFT:
+            request_interrupt = set_button(Button::LEFT, pressed);
+            break;
+        case SDLK_UP:
+            request_interrupt = set_button(Button::UP, pressed);
+            break;
+        case SDLK_DOWN:
+            request_interrupt = set_button(Button::DOWN, pressed);
+            break;
+        case SDLK_z:
+            request_interrupt = set_button(Button::A, pressed);
+            break;
+        case SDLK_x:
+            request_interrupt = set_button(Button::B, pressed);
+            break;
+        case SDLK_RSHIFT:
+            request_interrupt = set_button(Button::SELECT, pressed);
+            break;
+        case SDLK_RETURN:
+            request_interrupt = set_button(Button::START, pressed);
+            break;
+        default:
+            break;
+    }
+
+    if (request_interrupt) {
+        write_byte(0xFF0F, read_byte(0xFF0F) | (1 << 4));
+    }
+}
+
 // taken from: 
 // https://www.reddit.com/r/cpp_questions/comments/zl9p9p/is_there_a_better_way_to_read_a_file_into_a/ 
 std::vector<uint8_t> read_file(std::string filename) {
-    if (std::ifstream source_file {
-            filename, 
-            std::ios::binary
-        }; source_file) {
-
+    std::ifstream source_file{filename};
+    if (source_file) {
         return std::vector<uint8_t>(std::istreambuf_iterator<char>{source_file}, {});
     }
 
@@ -87,13 +122,18 @@ int main(int argc, char* argv[]) {
     std::cout << "made window\n";
     
     SDL_Event event;
-    std::cout << "hi\n";
     // run window. 
     while (!done) {
         // handle quit
         while (SDL_PollEvent(&event)) {
             if (event.type == SDL_QUIT) {
                 done = true;
+            }
+            else if (event.type == SDL_KEYDOWN && !event.key.repeat) {
+                update_button(event.key.keysym.sym, true);
+            }
+            else if (event.type == SDL_KEYUP) {
+                update_button(event.key.keysym.sym, false);
             }
         }
 

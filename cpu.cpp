@@ -41,7 +41,9 @@ uint8_t next8() {
 }
 
 uint16_t next16() {
-    return read_byte(pc++) | (((uint16_t)read_byte(pc++)) << 8);
+    uint8_t lo = read_byte(pc++);
+    uint8_t hi = read_byte(pc++);
+    return lo | (hi << 8);
 }
 
 uint8_t get_r8(uint8_t r) {
