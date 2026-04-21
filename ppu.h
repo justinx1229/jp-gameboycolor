@@ -4,6 +4,7 @@
 #include "consts.h"
 #include <vector>
 #include <array>
+#include <algorithm>
 
 extern uint32_t frame_buffer[HEIGHT][WIDTH];
 
