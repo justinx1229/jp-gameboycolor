@@ -5,6 +5,8 @@
 #include "memory.h"
 #include "ppu.h"
 
+using namespace std::chrono_literals;
+
 uint8_t cgb_mode;
 
 void update_button(SDL_Keycode key, bool pressed) {
@@ -136,11 +138,16 @@ int main(int argc, char* argv[]) {
                 update_button(event.key.keysym.sym, false);
             }
         }
-
-        for (int i = 0; i < 10000; i++) {
-            run();
+        auto t_cur = std::chrono::high_resolution_clock::now();
+        uint32_t cur_cyc = 0;
+        while (true) {
+            uint8_t mcycles = run();
+            run_ppu(mcycles);
+            cur_cyc += mcycles;
+            if (cur_cyc >= CYC) {
+                while (std::chrono::high_resolution_clock::now() - t_cur < FRAME_LEN * 1ms) {}
+            }
         }
-    
         render_display(frame_buffer);
     }
 

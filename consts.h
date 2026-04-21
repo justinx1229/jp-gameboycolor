@@ -8,12 +8,14 @@
 #include <filesystem>
 #include <string>
 #include <bitset>
+#include <chrono>
 
 const uint32_t WIDTH = 160;
 const uint32_t HEIGHT = 144;
 
 const uint32_t FPS = 60;
-const uint32_t FRAME_LEN = 1000 / FPS;
+const double FRAME_LEN = 1000 / FPS;
+const uint32_t CYC = 17476;
 
 const uint8_t CB = 203; 
 const uint16_t LO_16 = (1 << 16) - 1;

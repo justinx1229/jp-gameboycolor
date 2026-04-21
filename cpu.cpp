@@ -1078,16 +1078,16 @@ void run11(uint8_t byte) {
     }
 }
 
-void run() {
+uint8_t run() {
     if (stopped) {
-        return;
+        return 1;
     }
 
     uint8_t interrupt_cycles = handle_interrupt(pc, sp);
     if (interrupt_cycles) {
         tick_timer(interrupt_cycles);
         sime_to_ime();
-        return;
+        return interrupt_cycles;
     }
 
     uint8_t m_cycles = 1;
@@ -1146,9 +1146,10 @@ void run() {
     else {
         tick_timer(1);
         sime_to_ime();
-        return;
+        return 1;
     }
 
     tick_timer(m_cycles);
     sime_to_ime();
+    return m_cycles;
 }

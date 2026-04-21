@@ -12,4 +12,4 @@ extern uint8_t flags[4];
 
 void reset_cpu();
 
-void run();
+uint8_t run();
