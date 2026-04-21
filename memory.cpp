@@ -1,5 +1,6 @@
 
 #include "memory.h"
+#include "joypad.h"
 #include "timer.h"
 #include <cstring>
 
@@ -35,6 +36,7 @@ void reset_memory() {
     memset(regs, 0, sizeof(regs));
     memset(HRAM, 0, sizeof(HRAM));
     IE = 0;
+    reset_joypad();
     reset_timer();
 }
 
@@ -77,6 +79,10 @@ uint8_t read_byte(uint16_t address) {
         // Blargg tests print to the serial port by writing a byte to SB and then writing 0x81 to SC.
         // idk how this works lowkey but it does so here we are
         switch (address) {
+            case 0xFF00: {
+                return read_joypad();
+                break;
+            }
             case 0xFF4F: {
                 return vram_bank;
                 break;
@@ -141,6 +147,10 @@ void write_byte(uint16_t address, uint8_t byte) {
         // Blargg tests print to the serial port by writing a byte to SB and then writing 0x81 to SC.
         // idk how this works lowkey but it does so here we are
         switch (address) {
+            case 0xFF00: {
+                write_joypad(byte);
+                break;
+            }
             case 0xFF02: {
                 if (address == 0xFF02 && byte == 0x81) {
                     std::cout << static_cast<char>(regs[0x01]) << std::flush;
