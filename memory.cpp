@@ -9,7 +9,7 @@ uint8_t ROM_bank_00[SIZE_ROM_BANK];
 uint8_t ROM_bank_01_NN[SIZE_ROM_BANK];
 
 uint8_t VRAM[SIZE_VRAM][2];
-uint8_t ext_RAM[SIZE_VRAM];
+uint8_t ext_RAM[SIZE_EXT_RAM];
 
 uint8_t WRAM_1[SIZE_WRAM];
 uint8_t WRAM_2[SIZE_WRAM];
@@ -33,24 +33,20 @@ std::vector<uint8_t> cartridge_rom;
 uint8_t cartridge_type = 0;
 uint32_t rom_bank_count = 0;
 bool ram_enabled = false;
-uint8_t mbc1_rom_bank_low5 = 1;
-uint8_t mbc1_bank_high2 = 0;
-bool mbc1_mode = false;
+uint8_t mbc3_rom_bank = 1;
+uint8_t mbc3_ram_bank = 0;
 
 uint32_t effective_rom_bank(uint16_t address) {
     if (!rom_bank_count) {
         return 0;
     }
 
-    if (cartridge_type == 0x01 || cartridge_type == 0x02 || cartridge_type == 0x03) {
+    if (cartridge_type == 0x11 || cartridge_type == 0x12 || cartridge_type == 0x13) {
         if (address < 0x4000) {
-            if (mbc1_mode) {
-                return ((uint32_t)mbc1_bank_high2 << 5) % rom_bank_count;
-            }
             return 0;
         }
 
-        uint32_t bank = ((uint32_t)mbc1_bank_high2 << 5) | mbc1_rom_bank_low5;
+        uint32_t bank = mbc3_rom_bank & 0x7F;
         bank %= rom_bank_count;
         if (!bank) {
             bank = 1 % rom_bank_count;
@@ -82,9 +78,8 @@ void reset_memory() {
     cartridge_type = 0;
     rom_bank_count = 0;
     ram_enabled = false;
-    mbc1_rom_bank_low5 = 1;
-    mbc1_bank_high2 = 0;
-    mbc1_mode = false;
+    mbc3_rom_bank = 1;
+    mbc3_ram_bank = 0;
     reset_joypad();
     reset_timer();
 }
@@ -94,9 +89,8 @@ void load_rom(const std::vector<uint8_t> &bytes) {
     rom_bank_count = (bytes.size() + SIZE_ROM_BANK - 1) / SIZE_ROM_BANK;
     cartridge_type = bytes.size() > 0x147 ? bytes[0x147] : 0;
     ram_enabled = false;
-    mbc1_rom_bank_low5 = 1;
-    mbc1_bank_high2 = 0;
-    mbc1_mode = false;
+    mbc3_rom_bank = 1;
+    mbc3_ram_bank = 0;
 
     memset(ROM_bank_00, 0, sizeof(ROM_bank_00));
     memset(ROM_bank_01_NN, 0, sizeof(ROM_bank_01_NN));
@@ -138,7 +132,12 @@ uint8_t read_byte(uint16_t address) {
         return VRAM[address - 0x8000][vram_bank & cgb_mode];
     }
     else if (address < 0xC000) {
-        return ram_enabled ? ext_RAM[address - 0xA000] : 0xFF;
+        if (!ram_enabled) {
+            return 0xFF;
+        }
+
+        uint32_t ram_index = mbc3_ram_bank * SIZE_EXT_RAM_BANK + (address - 0xA000);
+        return ram_index < SIZE_EXT_RAM ? ext_RAM[ram_index] : 0xFF;
     }
     else if (address < 0xD000) {
         return WRAM_1[address - 0xC000];
@@ -195,14 +194,14 @@ uint8_t read_byte(uint16_t address) {
 
 void write_byte(uint16_t address, uint8_t byte) {
     if (address < 0x4000) {
-        if (cartridge_type == 0x01 || cartridge_type == 0x02 || cartridge_type == 0x03) {
+        if (cartridge_type == 0x11 || cartridge_type == 0x12 || cartridge_type == 0x13) {
             if (address < 0x2000) {
                 ram_enabled = (byte & 0x0F) == 0x0A;
             }
             else {
-                mbc1_rom_bank_low5 = byte & 0x1F;
-                if (!mbc1_rom_bank_low5) {
-                    mbc1_rom_bank_low5 = 1;
+                mbc3_rom_bank = byte & 0x7F;
+                if (!mbc3_rom_bank) {
+                    mbc3_rom_bank = 1;
                 }
             }
         }
@@ -211,12 +210,9 @@ void write_byte(uint16_t address, uint8_t byte) {
         }
     }
     else if (address < 0x8000) {
-        if (cartridge_type == 0x01 || cartridge_type == 0x02 || cartridge_type == 0x03) {
+        if (cartridge_type == 0x11 || cartridge_type == 0x12 || cartridge_type == 0x13) {
             if (address < 0x6000) {
-                mbc1_bank_high2 = byte & LO_2;
-            }
-            else {
-                mbc1_mode = byte & 1;
+                mbc3_ram_bank = byte & LO_2;
             }
         }
         else {
@@ -230,7 +226,10 @@ void write_byte(uint16_t address, uint8_t byte) {
     }
     else if (address < 0xC000) {
         if (ram_enabled) {
-            ext_RAM[address - 0xA000] = byte;
+            uint32_t ram_index = mbc3_ram_bank * SIZE_EXT_RAM_BANK + (address - 0xA000);
+            if (ram_index < SIZE_EXT_RAM) {
+                ext_RAM[ram_index] = byte;
+            }
         }
     }
     else if (address < 0xD000) {
@@ -284,6 +283,13 @@ void write_byte(uint16_t address, uint8_t byte) {
             }
             case 0xFF45: {
                 lyc = byte;
+                break;
+            }
+            case 0xFF46: {
+                uint16_t source = ((uint16_t)byte) << 8;
+                for (uint16_t i = 0; i < SIZE_OAM; i++) {
+                    OAM[i] = read_byte(source + i);
+                }
                 break;
             }
             case 0xFF69: {

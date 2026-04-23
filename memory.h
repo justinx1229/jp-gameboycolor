@@ -9,6 +9,8 @@
 
 const uint32_t SIZE_ROM_BANK = 1 << 14;
 const uint32_t SIZE_VRAM = 1 << 13;
+const uint32_t SIZE_EXT_RAM_BANK = 1 << 13;
+const uint32_t SIZE_EXT_RAM = 4 * SIZE_EXT_RAM_BANK;
 const uint32_t SIZE_WRAM = 1 << 12;
 const uint32_t SIZE_OAM = 160;
 const uint32_t SIZE_REGS = 128;
