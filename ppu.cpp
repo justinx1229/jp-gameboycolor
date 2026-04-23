@@ -71,6 +71,7 @@ void run_oam() {
     for (uint32_t i = 0xFE00; i < 0xFE9F; i += 4) {
         uint8_t y_pos = read_byte(i);
         uint8_t x_pos = read_byte(i + 1);
+        // std::cout << i << " " << (uint32_t)x_pos << " " << (uint32_t)y_pos << "\n";
         uint8_t tile_index = read_byte(i + 2);
         uint8_t attributes = read_byte(i + 3);
 
@@ -82,6 +83,7 @@ void run_oam() {
             break;
         }
     }
+
 
     oam_done = true;
     run_done = false;
@@ -105,8 +107,8 @@ std::array<uint8_t, 17> get_tile_data(uint32_t tv, bool is_window) {
             base = 0x9800;
         }
     }
-
     uint8_t tile_id = read_byte(base + tv);
+
 
     uint16_t start_index;
 
@@ -114,7 +116,7 @@ std::array<uint8_t, 17> get_tile_data(uint32_t tv, bool is_window) {
         start_index = 0x8000 + (((uint16_t)tile_id) << 4);
     }
     else {
-        start_index = 0x9000 + (((int32_t)tile_id) * 16);
+        start_index = 0x9000 + (((int32_t)((int8_t)tile_id)) * 16);
     }
 
     std::array<uint8_t, 17> data;
@@ -278,6 +280,7 @@ void draw_objs() {
             if (attributes & (1 << 6)) {
                 relative_x = (height - 1) - relative_x;
             }
+
 
             uint16_t address = 0x8000 + (((uint16_t)i[2]) << 4) + (relative_x << 1);
 
