@@ -163,6 +163,7 @@ void draw_bg() {
     uint8_t scy = read_byte(0xFF43);
 
     for (uint8_t i = 0; i < WIDTH; i++) {
+
         uint8_t x = ly + scy;
         uint8_t y = i + scx;
         uint8_t tx = x; uint8_t ty = y;
