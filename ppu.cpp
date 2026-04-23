@@ -159,8 +159,8 @@ void draw_bg() {
 
     std::array<uint8_t, 17> tile_data;
 
-    uint8_t scx = read_byte(0xFF42);
-    uint8_t scy = read_byte(0xFF43);
+    uint8_t scx = read_byte(0xFF43);
+    uint8_t scy = read_byte(0xFF42);
 
     for (uint8_t i = 0; i < WIDTH; i++) {
         uint8_t x = ly + scy;

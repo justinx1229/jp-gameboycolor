@@ -16,9 +16,25 @@ bool init_display(SDL_Window *window) {
 }
 
 void render_display(const uint32_t frame_buffer[HEIGHT][WIDTH]) {
+    if (!g_window) return;
+
+    surface = SDL_GetWindowSurface(g_window); // update if resized
     if (!surface) return;
 
-    memcpy(surface->pixels, frame_buffer, WIDTH * HEIGHT * sizeof(uint32_t));
+    int win_w = surface->w;
+    int win_h = surface->h;
+
+    uint32_t *pixels = (uint32_t*)surface->pixels;
+
+    for (int y = 0; y < win_h; y++) {
+        for (int x = 0; x < win_w; x++) {
+            int src_x = x * WIDTH / win_w;
+            int src_y = y * HEIGHT / win_h;
+
+            pixels[y * surface->w + x] = frame_buffer[src_y][src_x];
+        }
+    }
+
     SDL_UpdateWindowSurface(g_window);
 }
 
