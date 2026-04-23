@@ -273,6 +273,7 @@ void draw_objs() {
         if (lcdc & (1 << 2)) {
             height <<= 1;
         }
+        std::cout << "WTF\n";
 
         if (!cgb_mode) {
             uint8_t relative_x = ly - i[0];
