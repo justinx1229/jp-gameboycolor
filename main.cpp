@@ -103,10 +103,10 @@ int main(int argc, char* argv[]) {
     window = SDL_CreateWindow(
         "GAMEBOY COLOR EMULATOR",
         SDL_WINDOWPOS_UNDEFINED,
-        SDL_WINDOWPOS_UNDEFINED, 
-        WIDTH, 
-        HEIGHT,
-        0
+        SDL_WINDOWPOS_UNDEFINED,
+        WIDTH * 4,
+        HEIGHT * 4,
+        SDL_WINDOW_RESIZABLE
     );
 
     // check if window exists
