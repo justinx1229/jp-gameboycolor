@@ -55,6 +55,9 @@ uint8_t read_byte(uint16_t address) {
         return ROM_bank_01_NN[address & LO_14];
     }
     else if (address < 0xA000) {
+        if (mode == Mode::DRAW) {
+            return 0xFF;  // VRAM blocked
+        }
         return VRAM[address - 0x8000][vram_bank & cgb_mode];
     }
     else if (address < 0xC000) {
@@ -76,6 +79,9 @@ uint8_t read_byte(uint16_t address) {
     }
     
     else if (address < 0xFEA0) {
+        if (mode == Mode::OAM || mode == Mode::DRAW) {
+            return 0xFF;  // OAM blocked
+        }
         return OAM[address - 0xFE00];
     }
     else if (address >= 0xFF00 && address < 0xFF80) {
@@ -121,9 +127,7 @@ void write_byte(uint16_t address, uint8_t byte) {
         ROM_bank_01_NN[address & LO_14] = byte;
     }
     else if (address < 0xA000) {
-
         if (mode != Mode::DRAW) {
-
             VRAM[address - 0x8000][vram_bank && cgb_mode] = byte;
         }
     }
